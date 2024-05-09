@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>React with JSX in HTML</title>
+    <link rel="stylesheet" href="./index.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body>
+    <div id="root">
+      <nav id="nav"></nav>
+    </div>
+    <div id="table"></div>
+
+    <script type="text/babel">
+      const Navbar = () => {
+        return (
+          <nav className="bg-white border-gray-200 dark:bg-gray-900 rounded-md">
+            <div className="max-w-screen-xl flex flex-wrap items-center justify-center mx-auto p-4">
+              <a
+                href="https://redux.js.org/"
+                className="flex items-center space-x-3 rtl:space-x-reverse"
+              >
+                <span className="self-center text-2xl font-semibold whitespace-nowrap dark:text-white">
+                  DYNAMIC TABLE
+                </span>
+              </a>
+            </div>
+          </nav>
+        );
+      };
+      // Render the component to the 'nav' div
+      const rootElementNav = document.getElementById("nav");
+      ReactDOM.render(<Navbar />, rootElementNav);
+
+      const TableComponent = () => {
+        const months = [
+          { id: `col${1}`, data: "Month 1" },
+          { id: `col${2}`, data: "" },
+          { id: `col${3}`, data: "" },
+          { id: `col${4}`, data: "" },
+          { id: `col${5}`, data: "" },
+          { id: `col${6}`, data: "" },
+        ];
+
+        const titles = [
+          { id: `title${1}`, data: "Onboarding Call" },
+          { id: `title${2}`, data: "Google Search Console Access" },
+          { id: `title${3}`, data: "Website" },
+          { id: `title${4}`, data: "Technical Audit" },
+          { id: `title${5}`, data: "Anchor Text and Semantic Analysis" },
+          { id: `title${6}`, data: "On Page Optimization" },
+        ];
+
+        const data = [{ id: `Onboarding Call${1}`, data: "pending" }];
+
+        // Function to debounce API calls
+        const debounce = (fn, delay) => {
+          let timerId;
+
+          return function (...args) {
+            if (timerId) {
+              clearTimeout(timerId);
+            }
+
+            timerId = setTimeout(() => {
+              fn(...args);
+              timerId = null;
+            }, delay);
+          };
+        };
+
+        const debouncedUpdateData = debounce(updateDatabase, 1000);
+
+        const [rowCount, setRowCount] = React.useState(5);
+        const [column, setColumn] = React.useState([...months]);
+        const [rowHeading, setRowHeading] = React.useState([...titles]);
+
+        const stateUpdate = (id, value) => {
+          const testId = splitId(id); // Function to extract id name for conditional state update
+          if (testId === "title") {
+            setRowHeading((prevColumns) =>
+              prevColumns.map((row) =>
+                row.id === id ? { ...row, data: value } : row
+              )
+            );
+          } else if (testId === "col") {
+            setColumn((prevColumns) =>
+              prevColumns.map((column) =>
+                column.id === id ? { ...column, data: value } : column
+              )
+            );
+          }
+        };
+        const handleSubmit = (id, value) => {
+          /*This function enhances user experience by automatically triggering an action when the user makes changes and either presses the Enter key or loses focus, eliminating the need for consistent Enter key presses.*/
+          debouncedUpdateData(updateDatabase(id, value));
+          stateUpdate(
+            id,
+            value
+          ); /*Since there's no database, attempting to update it will lead to an error instead of providing a meaningful outcome. Therefore, the state is updated in this scenario to simulate the data update process. */
+        };
+
+        const updateDatabase = async (dataToUpdate) => {
+          try {
+            const response = await axios.post(
+              "api_endpoint",
+              dataToUpdate
+            );
+            stateUpdate(response?.data?.id, response?.data?.data);
+            window.alert("Save Changes");
+          } catch (error) {
+            console.error("Error updating data:", error.message);
+          }
+        };
+
+        function splitId(inputString) {
+          // Function to extract the exact id from the mixed #id containing numbers from the input
+          const index = inputString.search(/\d/);
+          // If a number is found, use slice to get the substring before it
+          if (index !== -1) {
+            return inputString.slice(0, index);
+          }
+          return inputString;
+        }
+
+        return (
+          <>
+            <form onSubmit={handleSubmit}>
+              <div>
+                <div className="relative overflow-x-auto shadow-md sm:rounded-lg">
+                  <table className="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+                    <thead className="text-xs text-gray-700 uppercase dark:text-gray-400">
+                      <tr>
+                        {column.map((column) => {
+                          return (
+                            <>
+                              <th
+                                key={column.id}
+                                scope="col"
+                                className="px-6 py-3 bg-gray-50 dark:bg-gray-700 text-center border"
+                              >
+                                <input
+                                  // key={column.id}
+                                  value={column.data}
+                                  className="dark:bg-gray-700 text-center"
+                                  onBlur={(e) =>
+                                    handleSubmit(column.id, e.target.value)
+                                  }
+                                  onKeyDown={(e) =>
+                                    e.key === "Enter" &&
+                                    handleSubmit(column.id, e.target.value)
+                                  }
+                                  onChange={(e) =>
+                                    handleSubmit(column.id, e.target.value)
+                                  }
+                                ></input>
+                              </th>
+                            </>
+                          );
+                        })}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rowHeading.map((heading) => {
+                        return (
+                          <tr className="border-b border-gray-200 dark:border-gray-700">
+                            <th
+                              key={heading.id}
+                              scope="row"
+                              className="px-6 py-4 font-medium text-gray-600 whitespace-nowrap bg-gray-50 dark:text-white dark:bg-gray-500"
+                            >
+                              <input
+                                className="text-center dark:bg-gray-500"
+                                value={heading.data}
+                                onBlur={(e) =>
+                                  handleSubmit(heading.id, e.target.value)
+                                }
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    handleSubmit(heading.id, e.target.value);
+                                  }
+                                }}
+                                onChange={(e) =>
+                                  handleSubmit(heading.id, e.target.value)
+                                }
+                              ></input>
+                            </th>
+                            {Array.from({ length: rowCount }).map((index) => (
+                              <td className="border" key={index}>
+                                <input
+                                  value={data.data}
+                                  onBlur={(e) =>
+                                    handleSubmit(data.id, e.target.value)
+                                  }
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                      handleSubmit(data.id, e.target.value);
+                                    }
+                                  }}
+                                  className="px-6 py-4 text-center"
+                                  // onChange={(e) => handleChange(e)}
+                                ></input>
+                              </td>
+                            ))}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </form>
+          </>
+        );
+      };
+
+      // Render the component to the 'table' div
+      const rootElementTable = document.getElementById("table");
+      ReactDOM.render(<TableComponent />, rootElementTable);
+    </script>
+
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              clifford: "#da373d",
+            },
+          },
+        },
+      };
+    </script>
+  </body>
+</html>
